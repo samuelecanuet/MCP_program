@@ -4,17 +4,18 @@ This Python script is designed for the reconstruction of MCP (Micro Channel Plat
 
 ## Prerequisites
 
-Make sure you have the required Python libraries installed:
+- **GSL** (https://mirror.ibcp.fr/pub/gnu/gsl/gsl-latest.tar.gz)
+- **fasterac** (https://faster.in2p3.fr/index.php/download/category/2-software?download=20:fasterac-2-17-0-tar-gz)
+- **ROOT**
+- run commands :
 
 ```bash
-pip install -r requirement.txt
+./configure
 ```
 
 ```bash
-make
+source ~/.cshrc
 ```
-
-Additionally, you need to have ROOT installed.
 ## Usage
 
 To run the script, use the following command:
@@ -27,15 +28,6 @@ python script_name.py -f <input_filename> [-c]
 - `-f` or `--filename`: Specify the input file (either .root or .fast format). 
 - `-c` or `--calibration`: Enable calibration mode.
 ## Script Overview
-### Libraries Used 
-- `numpy` 
-- `matplotlib` 
-- `seaborn` 
-- `ROOT` 
-- `subprocess` 
-- `argparse` 
-- `ctypes`
-
 
 ### 1. Calibration Mode
 - Execute the script with the -c argument.
@@ -49,7 +41,7 @@ python script_name.py -f <input_filename> [-c]
 
 ## Fitting Details
 - Reconstruction is performed using two polynomial fits: x<sub>real</sub> = g(x<sub>data</sub>, y<sub>data</sub>) and y<sub>real</sub> = f(x<sub>data</sub>, y<sub>data</sub>). You can modify the degree of the function in the "fit.C" file. 
-- The reconstruction is constrained within the phase space (xdata,ydatax_{\text{data}}, y_{\text{data}}xdata​,ydata​) based on the selected points in Calibration Mode.
+- The reconstruction is constrained within the phase space (x<sub>data</sub>,y<sub>data</sub>) based on the points selection in Calibration Mode.
 
 
 ## Version 
@@ -57,10 +49,4 @@ python script_name.py -f <input_filename> [-c]
 - GUI for calibration and reconstruction
 - Manual calibration with corner point
 - Polynomial fit
-- Gaussian 1D and 2D fit
-
-## Disclaimer
-
-**Note:** The use of this software/project comes with absolutely no guarantees or warranties. The authors and contributors are not responsible for any consequences or damages that may arise from the use of this software. Use it at your own risk.
-
-This project is provided "as is," and it is your responsibility to assess its fitness for your intended purpose. The authors make no claims regarding its reliability, completeness, or suitability for any particular use. Contributions and suggestions are welcome but are not guaranteed to be incorporated into the project.
+- Gaussian 1D
