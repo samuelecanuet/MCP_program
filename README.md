@@ -21,7 +21,7 @@ source ~/.cshrc
 To run the script, use the following command:
 
 ```bash
-python script_name.py -f <input_filename> [-c]
+python3 MCP_gui.py -f <input_filename> [-c]
 ```
 
  
