@@ -12,7 +12,9 @@
 #include "TH1F.h"
 #include "TF1.h"
 #include "TF2.h"
+#include "TF3.h"
 #include "TH2F.h"
+#include "TH3F.h"
 #include "TCanvas.h"
 #include "TStyle.h"
 #include "TRandom.h"
@@ -24,8 +26,8 @@
 
 using namespace std;
 
-const int NparX = 5;
-const int NparY = 5;
+const int NparX = 3;
+const int NparY = 3;
 const int Nparam = (NparX + 1) * (NparY + 1);
 float X2_tree, Y2_tree;
 
@@ -38,10 +40,26 @@ int main(int argc, char **argv)
   TTreeReader Reader("treeMCP", root_file);
   TTreeReaderValue<double> X0_tree(Reader, "X0");
   TTreeReaderValue<double> Y0_tree(Reader, "Y0");
+  TTreeReaderValue<double> HG(Reader, "MCP_HG_q1");
+  TTreeReaderValue<double> BG(Reader, "MCP_BG_q1");
+  TTreeReaderValue<double> HD(Reader, "MCP_HD_q1");
+  TTreeReaderValue<double> BD(Reader, "MCP_BD_q1");
   TTree *tree_MCP_corr = new TTree("treeMCP_corr", "treeMCP_corr");
   tree_MCP_corr->Branch("X2", &X2_tree, "X2/F");
   tree_MCP_corr->Branch("Y2", &Y2_tree, "Y2/F");
-  TH2F *h_Image_corr = new TH2F("h_Image_corr", "h_Image_corr", 500, -10., 10., 500, -10., 10.);
+  TH2F *h_Image_corr = new TH2F("h_Image_corr", "h_Image_corr", 350, -10., 10., 350, -10., 10.);
+
+  TH2F *X_BG = new TH2F("X_BG", "X_BG", 1000, 0, 1, 350, -10., 10.);
+  TH2F *X_HG = new TH2F("X_HG", "X_HG", 1000, 0, 1, 350, -10., 10.);
+  TH2F *X_BD = new TH2F("X_BD", "X_BD", 1000, 0, 1, 350, -10., 10.);
+  TH2F *X_HD = new TH2F("X_HD", "X_HD", 1000, 0, 1, 350, -10., 10.);
+
+  TH2F *Y_BG = new TH2F("Y_BG", "Y_BG", 1000, 0, 1, 350, -10., 10.);
+  TH2F *Y_HG = new TH2F("Y_HG", "Y_HG", 1000, 0, 1, 350, -10., 10.);
+  TH2F *Y_BD = new TH2F("Y_BD", "Y_BD", 1000, 0, 1, 350, -10., 10.);
+  TH2F *Y_HD = new TH2F("Y_HD", "Y_HD", 1000, 0, 1, 350, -10., 10.);
+
+  TGraph *test = new TGraph();
 
   // fit function
     Double_t fit_points(Double_t *, Double_t *);
@@ -54,6 +72,7 @@ int main(int argc, char **argv)
     ifstream testfile("coordinate_file_back.txt");
     while (std::getline(testfile, line)){N++;}
     ifstream infile("coordinate_file_back.txt");
+    ofstream out_points("fit_coordinate.txt") ;
     
 
     // Inititalise varaibales
@@ -62,6 +81,8 @@ int main(int argc, char **argv)
     double tab_Y0[N];
     double tab_X1[N];
     double tab_Y1[N];
+    double tab_X2[N];
+    double tab_Y2[N];
 
     double diff_r;
     double r;
@@ -88,11 +109,11 @@ int main(int argc, char **argv)
 
       tab_X0[i] = X0;
       tab_Y0[i] = Y0;
-      tab_X1[i] = X1;
-      tab_Y1[i] = Y1;
+      tab_X1[i] = X1-1.6;
+      tab_Y1[i] = Y1-1.6;
 
-      g_X1->SetPoint(i, X0, Y0, X1);
-      g_Y1->SetPoint(i, X0, Y0, Y1);
+      g_X1->SetPoint(i, X0, Y0, X1+1.6);
+      g_Y1->SetPoint(i, X0, Y0, Y1+1.6);
     }
 
     g_X1->Fit("fit_points_fX1");
@@ -103,34 +124,47 @@ int main(int argc, char **argv)
       X2 = f_X1->Eval(tab_X0[i], tab_Y0[i]);
       Y2 = f_Y1->Eval(tab_X0[i], tab_Y0[i]);
 
+      out_points << X2 << " " << Y2 << endl;
+
       diff_r = sqrt(pow(X2 - tab_X1[i], 2) + pow(Y2 - tab_Y1[i], 2));
       r = sqrt(pow(tab_X1[i], 2) + pow(tab_Y1[i], 2));
       Residus->SetPoint(i, r, diff_r);
     }
 
     size_t size = sizeof(tab_X0) / sizeof(tab_X0[0]);
-
+  int i = 0;
     while (Reader.Next())
     {
-      if (*X0_tree < gsl_stats_max(tab_X0, 1, size) && *X0_tree > gsl_stats_min(tab_X0, 1, size) && *Y0_tree < gsl_stats_max(tab_Y0, 1, size) && *Y0_tree > gsl_stats_min(tab_Y0, 1, size))
-      {
+      // if (*X0_tree < gsl_stats_max(tab_X0, 1, size) && *X0_tree > gsl_stats_min(tab_X0, 1, size) && *Y0_tree < gsl_stats_max(tab_Y0, 1, size) && *Y0_tree > gsl_stats_min(tab_Y0, 1, size))
+      // {
         X2_tree = f_X1->Eval(*X0_tree, *Y0_tree);
         Y2_tree = f_Y1->Eval(*X0_tree, *Y0_tree);
         tree_MCP_corr->Fill();
         h_Image_corr->Fill(X2_tree, Y2_tree);
-      }
+
+        double sum = *BG+*HG+*BD+*BD;
+
+        X_BG->Fill(*BG/sum, X2_tree);
+        X_HG->Fill(*HG/sum, X2_tree);
+        X_BD->Fill(*BD/sum, X2_tree);
+        X_HD->Fill(*HD/sum, Y2_tree);
+
+        Y_BG->Fill(*BG/sum, Y2_tree);
+        Y_HG->Fill(*HG/sum, Y2_tree);
+        Y_BD->Fill(*BD/sum, Y2_tree);
+        Y_HD->Fill(*HD/sum, Y2_tree);
+      //}
     }
 
     ofstream out_resultats("fit_params.txt");
 
-    out_resultats << gsl_stats_max(tab_X0, 1, size) << "\t" << gsl_stats_min(tab_X0, 1, size) << "\t" << gsl_stats_max(tab_Y0, 1, size) << "\t" << gsl_stats_min(tab_Y0, 1, size) << endl;
-    for (int i = 0; i < Nparam; i++)
-      out_resultats << f_X1->GetParameter(i) << "	";
+    for (int i = 0; i <= Nparam; i++)
+      out_resultats << f_X1->GetParameter(i) << " ";
     out_resultats << endl;
-    for (int i = 0; i < Nparam; i++)
-      out_resultats << f_Y1->GetParameter(i) << "	";
+    for (int i = 0; i <= Nparam; i++)
+      out_resultats << f_Y1->GetParameter(i) << " ";
 
-    Residus->Draw("AP");
+    test->Draw("AP");
     c1->Write();
     root_file->Write();
     root_file->Close();
@@ -194,7 +228,7 @@ Double_t fit_points(Double_t *x, Double_t *par)
   for (int i = 0; i <= NparX; i++)
     for (int j = 0; j <= NparY; j++)
     {
-      ij = i * NparY + j;
+      ij = i * (NparY+1) + j;
       res = res + par[ij] * pow(x[0], i) * pow(x[1], j);
     }
 

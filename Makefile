@@ -24,7 +24,7 @@ EXE       = $(SRCEXE:.C=)
 all : $(EXE)
 
 $(EXE): $(SRCEXE)
-	${CC} $@.C -o $@ ${CFLAGS} ${LIBS}
+	${CC} $@.C -o $@ ${CFLAGS} ${LIBS} -lSpectrum
 
 clean :
 	rm -f *.o

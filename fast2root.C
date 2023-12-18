@@ -45,16 +45,22 @@ using namespace std;
 #define NO_DATA 0.
 
 const int N=60;
-const int NparX=5;
-const int NparY=5;
+const int NparX=3;
+const int NparY=3;
 const int Nparam = (NparX+1)*(NparY+1);
 
-const double MCP_q1_min=4000.;
+const double MCP_q1_min=0;
 
 #include <TFile.h>
 #include <TH2F.h>
 #include <TH2D.h>
 #include <TCanvas.h>
+
+#include <gsl/gsl_statistics.h>
+double func(double x, double n)
+{
+  return log(x/n);
+}
 
 int main (int argc, char** argv) 
 {
@@ -128,15 +134,14 @@ int main (int argc, char** argv)
   treeMCP->Branch ("MCP_BD_q1", &MCP_BD_q1,  "MCP_BD_q1/D");
   treeMCP->Branch ("MCP_SIG_q1", &MCP_SIG_q1, "MCP_SIG_q1/D");
   treeMCP->Branch ("X0", &X0, "X0/D");
-  treeMCP->Branch ("Y0", &Y0, "Y0/D");
-   
+  treeMCP->Branch ("Y0", &Y0, "Y0/D");  
    
   //  output histograms
   TH2F *h_Image = new TH2F("h_Image","h_Image",500,-1.,1.,500,-1.,1.);
-  TH1F *h_MCP_HG_q1 = new TH1F("h_MCP_HG_q1","h_MCP_HG_q1",1000,0.,100000);
-  TH1F *h_MCP_HD_q1 = new TH1F("h_MCP_HD_q1","h_MCP_HD_q1",1000,0.,100000);
-  TH1F *h_MCP_BG_q1 = new TH1F("h_MCP_BG_q1","h_MCP_BG_q1",1000,0.,100000);
-  TH1F *h_MCP_BD_q1 = new TH1F("h_MCP_BD_q1","h_MCP_BD_q1",1000,0.,100000);
+  TH1F *h_MCP_HG_q1 = new TH1F("h_MCP_HG_q1","h_MCP_HG_q1",1000,0.,200000);
+  TH1F *h_MCP_HD_q1 = new TH1F("h_MCP_HD_q1","h_MCP_HD_q1",1000,0.,200000);
+  TH1F *h_MCP_BG_q1 = new TH1F("h_MCP_BG_q1","h_MCP_BG_q1",1000,0.,200000);
+  TH1F *h_MCP_BD_q1 = new TH1F("h_MCP_BD_q1","h_MCP_BD_q1",1000,0.,200000);
   TH1F *h_MCP_SIG_q1 = new TH1F("h_MCP_SIG_q1","h_MCP_SIG_q1",1000,0.,100000);
   
 ///////////////////////////////////////////////////////////////////////
@@ -235,35 +240,49 @@ int i_no_group=0;
       if (label == LABEL_MCP_HG)
 			{
 			MCP_HG_q1 = spectro_data.measure;
-			h_MCP_HG_q1->Fill(MCP_HG_q1);
+			
 			}
 			
 			if (label == LABEL_MCP_HD)
 			{
 			MCP_HD_q1 = spectro_data.measure;
-			h_MCP_HD_q1->Fill(MCP_HD_q1);
+			
 			}
 			
 			if (label == LABEL_MCP_BG)
 			{
 			MCP_BG_q1 = spectro_data.measure;
-			h_MCP_BG_q1->Fill(MCP_BG_q1);
+			
 			}
 			
 			if (label == LABEL_MCP_BD)
 			{
 			MCP_BD_q1 = spectro_data.measure;
-			h_MCP_BD_q1->Fill(MCP_BD_q1);
+			
 			}
 
     }
 	}// end of loop on data while in groups
 	
-	
-	X0 = (MCP_HD_q1 + MCP_BD_q1 - MCP_HG_q1 - MCP_BG_q1)/(MCP_HD_q1 + MCP_BD_q1 + MCP_HG_q1 + MCP_BG_q1);
-	Y0 = (MCP_HD_q1 + MCP_HG_q1 - MCP_BG_q1 - MCP_BD_q1)/(MCP_HD_q1 + MCP_BD_q1 + MCP_HG_q1 + MCP_BG_q1);
-	
-	if (MCP_SIG_q1 > MCP_q1_min && MCP_HD_q1 != NO_DATA && MCP_HG_q1 != NO_DATA && MCP_BD_q1 != NO_DATA && MCP_BG_q1 != NO_DATA) {h_Image->Fill(X0,Y0); treeMCP->Fill();}
+  double tab[4] = {MCP_BG_q1,MCP_BD_q1,MCP_HG_q1,MCP_HD_q1};
+  double max = gsl_stats_max(tab, 1, 4);
+
+	double norm = MCP_BG_q1+MCP_BD_q1+MCP_HG_q1+MCP_HD_q1;
+	// X0 = -(func(MCP_HD_q1, norm) + func(MCP_BD_q1, norm) - func(MCP_HG_q1, norm) - func(MCP_BG_q1, norm)) / (func(MCP_HD_q1, norm) + func(MCP_BD_q1, norm) + func(MCP_HG_q1, norm) + func(MCP_BG_q1, norm));
+  // Y0 = -(func(MCP_HD_q1, norm) - func(MCP_BD_q1, norm) + func(MCP_HG_q1, norm) - func(MCP_BG_q1, norm)) / (func(MCP_HD_q1, norm) + func(MCP_BD_q1, norm) + func(MCP_HG_q1, norm) + func(MCP_BG_q1, norm));
+
+  X0 = -log(MCP_HD_q1*MCP_BD_q1/(MCP_BG_q1*MCP_HG_q1))/ (func(MCP_HD_q1*MCP_BD_q1*MCP_HG_q1*MCP_BG_q1, pow(norm,4)));
+  Y0 = -log(MCP_HD_q1*MCP_HG_q1/(MCP_BG_q1*MCP_BD_q1))/ (func(MCP_HD_q1*MCP_BD_q1*MCP_HG_q1*MCP_BG_q1, pow(norm,4)));
+
+	if (MCP_SIG_q1 > MCP_q1_min && MCP_HD_q1 != NO_DATA && MCP_HG_q1 != NO_DATA && MCP_BD_q1 != NO_DATA && MCP_BG_q1 != NO_DATA) 
+  {
+    h_MCP_HG_q1->Fill(MCP_HG_q1);
+    h_MCP_HD_q1->Fill(MCP_HD_q1);
+    h_MCP_BG_q1->Fill(MCP_BG_q1);
+    h_MCP_BD_q1->Fill(MCP_BD_q1);
+    h_Image->Fill(X0,Y0); 
+    treeMCP->Fill();
+  }
 	
 	
 	// close the group reader

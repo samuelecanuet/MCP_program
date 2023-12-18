@@ -1,13 +1,14 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.patches import Circle, Rectangle, Wedge
-from matplotlib.widgets import Button, Slider
+from matplotlib.patches import Circle, Rectangle, Wedge, Polygon
+from matplotlib.widgets import Button, Slider, RadioButtons
 import csv
 from ROOT import *
 import subprocess
 import argparse
 import ctypes
 import seaborn as sns
+from matplotlib.backend_bases import MouseButton
 
 custom_params = {
         "xtick.direction" : "out",
@@ -29,8 +30,128 @@ custom_params = {
         # 'figure.subplot.right': 0.95, 
         # 'figure.subplot.top': 0.90
         }
-sns.set_theme(style = "ticks", rc=custom_params)
+#sns.set_theme(style = "ticks", rc=custom_params)
 
+class MovePoint(object):
+    def __init__(self, ax, graf, rec=None):
+        self.ratio = 25
+        self.ax = ax
+        self.figcanvas = self.ax.figure.canvas
+        self.graf = graf
+        self.moved = None
+        self.pointx = None
+        self.pointy = None
+        self.pressed = False
+        self.start = False
+        self.delete = False
+        self.find = False
+        self.initx = graf.get_center()[0]
+        self.inity = graf.get_center()[1]
+        self.label = graf.get_label()
+
+
+        self.find = False
+        self.graf.set_center((self.initx/self.ratio, self.inity/self.ratio))
+        self.graf.set_radius(graf.get_radius()/self.ratio)
+        self.graph.set_alpha(0.8)
+
+
+        self.figcanvas.mpl_connect('button_press_event', self.mouse_press)
+        self.figcanvas.mpl_connect('button_release_event', self.mouse_release)
+        self.figcanvas.mpl_connect('motion_notify_event', self.mouse_move)
+
+    def mouse_release(self, event):
+        if self.ax.get_navigate_mode()!= None: return
+        if not event.inaxes: return
+        if event.inaxes != self.ax: return
+
+        if self.pressed: 
+            self.pressed = False
+            self.start = False
+            self.pointx = None
+            self.pointy = None
+            if self.graf.get_facecolor()==(1.0, 0.0, 0.0, 1):
+                self.graf.set_facecolor('green')
+            return
+        
+    def mouse_press(self, event):
+        if self.ax.get_navigate_mode()!= None: return
+        if not event.inaxes: return
+        if event.inaxes != self.ax: return
+        if self.start: return
+        if self.delete: return
+        
+        self.pointx = event.xdata
+        self.pointy = event.ydata
+        if self.graf.contains(event)[0]:
+            if event.button is MouseButton.RIGHT:
+                self.graf.remove() 
+                self.delete = True
+            self.pressed = True
+        
+
+    def mouse_move(self, event):
+        if self.ax.get_navigate_mode()!= None: return
+        if not event.inaxes: return
+        if event.inaxes != self.ax: return
+        if not self.pressed: return
+        self.start = True
+        self.graf.set_center((event.xdata, event.ydata))
+
+    
+
+
+class MoveRec(object):
+    def __init__(self, ax, rec):
+        self.ratio = 20
+        self.ax = ax
+        self.figcanvas = self.ax.figure.canvas
+        self.moved = None
+        if str(rec)[:9] == "Rectangle":
+            self.pointx = round(rec.get_xy()[0]-rec.get_height(), 5)
+            self.pointy = round(rec.get_xy()[1]-rec.get_height(), 5)
+        self.pressed = False
+        self.start = False
+        self.delete = False
+        self.selected = False
+        self.valid = False
+        self.rec = rec
+        self.label = rec.get_label()
+        self.x = 0
+        self.y = 0
+                       
+        self.figcanvas.mpl_connect('button_press_event', self.mouse_press)
+
+
+    def mouse_press(self, event):
+        if self.ax.get_navigate_mode()!= None: return
+        if not event.inaxes: return
+        if event.inaxes != self.ax: return
+        if self.start: return
+        if self.rec.contains(event)[0] and event.inaxes == axs[0,1]:
+            self.pressed = True
+            if self.rec.get_facecolor() == (1.0, 0.0, 0.0, 1.0):
+                self.rec.set_facecolor('orange')
+                self.selected = True
+                self.figcanvas.draw()
+                return 
+            elif self.rec.get_facecolor() == (1.0, 0.6470588235294118, 0.0, 1.0):
+                self.rec.set_facecolor('green')
+                self.valid = True
+                self.select = False
+                self.figcanvas.draw()
+                return
+            else:
+                self.rec.set_facecolor('red')
+                self.figcanvas.draw()
+                self.selected = False
+                self.valid = False
+                return
+            
+    def GetCoordinates(self):
+        return [self.pointx, self.pointy, self.x, self.y]
+    
+        
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -65,7 +186,7 @@ def DisplayTGraph(Graph, ax, color='black', label=None, title=None, xlabel=None,
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.set_title(title)
+    #ax.set_title(title)
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
 
@@ -75,12 +196,7 @@ def DisplayTH1D(Hist, ax, color=None, label=None, title=None, xlabel=None, ylabe
         if rebin   != None: Hist.Rebin(rebin)
         if normalized == True: integral = Hist.Integral()
         else : integral = 1.
-
-        print(Hist)
-        
         nbins_x = Hist.GetNbinsX()
-        print(nbins_x)
-
         hist_data = np.zeros(nbins_x)
         bin_centers_x = np.zeros(nbins_x)
 
@@ -178,68 +294,40 @@ def DisplayTH2D(Hist, ax, color='plasma', label=None, title=None, xlabel=None, y
 current=[]
 current_patch=[]
 sc = None
-def mouse_event(event):
-    try:
-        if event.inaxes.get_title() == "MCP sample":
-            for i, patches in enumerate(event.inaxes.patches):
-                if patches.contains(event)[0] and patches.get_label() != "":
-                    
-                    if patches.get_facecolor() == (1.0, 0.6470588235294118, 0.0, 1.0) or patches.get_facecolor() == (0.0, 0.5019607843137255, 0.0, 1.0):
-                        patches.set_facecolor("red")
-                        list_point[int(patches.get_label())][1][2].remove()
-                        event.canvas.draw()
-                        list_point[int(patches.get_label())][1] = [None, None, None]
-                        
-                    else: 
-                        patches.set_facecolor("orange")
-                        event.canvas.draw()
-                        current.append(int(patches.get_label()))  
-                        current_patch.append(i)  
-                            
-                    
-        if event.inaxes.get_title() == "MCP data":   
-            list_point[current[-1]][1] = [event.xdata, event.ydata, event.inaxes.scatter(event.xdata, event.ydata, color="white", marker = '+', s=50)]
-            event.canvas.figure.axes[1].patches[current_patch[-1]].set_facecolor("green")
-            event.canvas.draw()
-    except AttributeError:
-        None
 
-def on_move(event):
-    global sc
-    if event.inaxes is axs[0,0]:
-        x, y = event.xdata, event.ydata
-        del axs[1,0].get_children()[0]
-        axs[1,0].set_xlim(x - 0.15, x + 0.15)
-        axs[1,0].set_ylim(y - 0.15, y + 0.15)
-        
-        if sc: sc.remove()
-        sc = axs[1,0].scatter(x, y, marker = "+", s = 125, color="red")
-        
-        event.canvas.draw()
-   
+  
 def writer(event):
     with open("coordinate_file.txt", "w") as file:
         writer = csv.writer(file, delimiter='\t')
-        for values in list_point:
-            if values[1][0] == None or values[1][1] == None:
-                continue
-            writer.writerow([values[0][0], values[0][1], values[1][0], values[1][1]])
+        for square in liste:
+            if square.x and square.y:
+                values = square.GetCoordinates()
+                writer.writerow([round(values[0], 5), round(values[1], 5), values[2], values[3]])
 
 def reconstruction(event):
     if args.calibration:
+        axs[0,2].clear()     
         writer(event)
         print(f" {bcolors.OKGREEN} Running  : fit {bcolors.ENDC}")
         subprocess.run(["fit", input_file, "config"])
         root_file = TFile(input_file)
         Histo = DisplayTH2D(root_file.Get("h_Image_corr"), axs[0,2], xlim='auto', ylim='auto', vmax = 20, title = "MCP Reconstructed")
-        sc = DisplayTGraph(root_file.Get("Residus"), axs[1,2])
-        plt.show()
+
+        x, y = [], []
+           
+        with open("fit_coordinate.txt" , 'r') as fileout:
+            for line in fileout:
+                line = line.split(" ")
+                x.append(float(line[0]))
+                y.append(float(line[1]))
+        #axs[0,2].scatter(x, y, color='green', s=10)
+        #plt.show()
         return Histo, sc
 
     else:
         subprocess.run(["fit", input_file])
         root_file = TFile(input_file)
-        Histo = DisplayTH2D(root_file.Get("h_Image_corr"), axs[0,1], xlim='auto', ylim='auto', title = "MCP reconstructed")
+        Histo = DisplayTH2D(root_file.Get("h_Image_corr"), axs[0,2], xlim='auto', ylim='auto', title = "MCP reconstructed")
         plt.show()
         return Histo, None
 
@@ -257,46 +345,52 @@ def printer(nombre, error):
         return float(str(round(nombre, index-1))), float(str(round(error, index-1)))
 
 def One_fit(event):
-    try : 
+        liste2=[]
+        liste3=[]
+    # try : 
         root_file = TFile(input_file)
-        th1d = root_file.Get("h_Image_corr") 
-        th1d.GetXaxis().SetRangeUser(axs[0,1].get_xlim()[0], axs[0,1].get_xlim()[1])
-        th1d.GetYaxis().SetRangeUser(axs[0,1].get_ylim()[0], axs[0,1].get_ylim()[1])
-        
+        th1d = root_file.Get("h_Image") 
+        th1d.GetXaxis().SetRangeUser(axs[0,0].get_xlim()[0], axs[0,0].get_xlim()[1])
+        th1d.GetYaxis().SetRangeUser(axs[0,0].get_ylim()[0], axs[0,0].get_ylim()[1])
+    
         ### Display and Do Hist-Fiiting
         axs[1,1].clear()
         th_x = th1d.ProjectionX("projectionX")
         DisplayTH1D(th_x, axs[1,1], title="X projection")
-        gaussian_x = TF1("gaussian", "gaus", axs[0,1].get_xlim()[0], axs[0,1].get_xlim()[1])
+        gaussian_x = TF1("gaussian", "gaus", axs[0,0].get_xlim()[0], axs[0,0].get_xlim()[1])
         gaussian_x.SetParameters(th_x.GetMaximum(), 0, 1)
         th_x.Fit("gaussian", "R")
-        x = np.linspace(axs[0,1].get_xlim()[0], axs[0,1].get_xlim()[1], 10000)
+        x = np.linspace(axs[0,0].get_xlim()[0], axs[0,0].get_xlim()[1], 10000)
         axs[1,1].plot(x, gauss(x, gaussian_x.GetParameter(0), gaussian_x.GetParameter(1), gaussian_x.GetParameter(2)), color="red")
 
-        axs[0,2].clear()
+        axs[1,0].clear()
         th_y = th1d.ProjectionY("projectionY")
-        DisplayTH1D(th_y, axs[0,2], title = "Y projection")
-        gaussian_y = TF1("gaussian", "gaus", axs[0,1].get_ylim()[0], axs[0,1].get_ylim()[1])
+        DisplayTH1D(th_y, axs[1,0], title = "Y projection")
+        gaussian_y = TF1("gaussian", "gaus", axs[0,0].get_ylim()[0], axs[0,0].get_ylim()[1])
         gaussian_y.SetParameters(th_y.GetMaximum(), 0, 1)
         th_y.Fit("gaussian", "R")
-        y = np.linspace(axs[0,1].get_ylim()[0], axs[0,1].get_ylim()[1], 10000)
-        axs[0,2].plot(y, gauss(y, gaussian_y.GetParameter(0), gaussian_y.GetParameter(1), gaussian_y.GetParameter(2)), color="red")
+        y = np.linspace(axs[0,0].get_ylim()[0], axs[0,0].get_ylim()[1], 10000)
+        axs[1,0].plot(y, gauss(y, gaussian_y.GetParameter(0), gaussian_y.GetParameter(1), gaussian_y.GetParameter(2)), color="red")
 
-        ### Display Results
-        fontsize = 15
-        axs[1,2].clear()
-        axs[1,2].axis("off")
-        axs[1,2].text(0.0, 0.95, "Fit Paramters : ", fontsize = fontsize)
-        axs[1,2].text(0.05, 0.8, "X Projection : ", fontsize = fontsize)
-        axs[1,2].text(0.05, 0.7, "Mean = {} +/- {} mm".format(printer(gaussian_x.GetParameter(1), gaussian_x.GetParError(1))[0], printer(gaussian_x.GetParameter(1), gaussian_x.GetParError(1))[1]), fontsize = fontsize)
-        axs[1,2].text(0.05, 0.6, "Std = {} +/- {} mm".format(printer(gaussian_x.GetParameter(2), gaussian_x.GetParError(2))[0], printer(gaussian_x.GetParameter(2), gaussian_x.GetParError(2))[1]), fontsize = fontsize)
-        axs[1,2].text(0.05, 0.4, "Y Projection : ", fontsize = fontsize)
-        axs[1,2].text(0.05, 0.3, "Mean = {} +/- {} mm".format(printer(gaussian_y.GetParameter(1), gaussian_y.GetParError(1))[0], printer(gaussian_y.GetParameter(1), gaussian_y.GetParError(1))[1]), fontsize = fontsize)
-        axs[1,2].text(0.05, 0.2, "Std = {} +/- {} mm".format(printer(gaussian_y.GetParameter(2), gaussian_y.GetParError(2))[0], printer(gaussian_y.GetParameter(2), gaussian_y.GetParError(2))[1]), fontsize = fontsize)
-        
+        for square in liste:
+            if square.selected:
+                square.rec.set_facecolor("green")
+                square.valid = True
+                square.selected = False
+                square.x = gaussian_x.GetParameter(1)
+                square.y = gaussian_y.GetParameter(1)
+                break
 
-    except AttributeError:
-         print(f" {bcolors.WARNING} Please, reconstruct the image before fitting. {bcolors.ENDC}")
+
+        liste2.append(Circle( (gaussian_x.GetParameter(1), gaussian_y.GetParameter(1)), 0.02, facecolor="green", alpha=0.5))
+        liste3.append(MoveRec(axs[0,0], liste2[-1]))
+        axs[0,0].add_patch(liste2[-1])  
+
+
+
+
+    # except AttributeError:
+    #      print(f" {bcolors.WARNING} Please, reconstruct the image before fitting. {bcolors.ENDC}")
 
 
 def gaussian2D(x, par):
@@ -319,10 +413,10 @@ def Two_fit(event):
         axs[1,2].clear()
         axs[1,2].axis("off")
         axs[1,2].text(0.0, 0.95, "Fit Paramters : ", fontsize = fontsize)
-        axs[1,2].text(0.05, 0.7, "Mean = {} +/- {} mm".format(printer(gaussian.GetParameter(1), gaussian.GetParError(1))[0], printer(gaussian.GetParameter(1), gaussian.GetParError(1))[1]), fontsize = fontsize)
-        axs[1,2].text(0.05, 0.6, "Std = {} +/- {} mm".format(printer(gaussian.GetParameter(2), gaussian.GetParError(2))[0], printer(gaussian.GetParameter(2), gaussian.GetParError(2))[1]), fontsize = fontsize)
-        axs[1,2].text(0.05, 0.3, "Mean = {} +/- {} mm".format(printer(gaussian.GetParameter(3), gaussian.GetParError(3))[0], printer(gaussian.GetParameter(3), gaussian.GetParError(3))[1]), fontsize = fontsize)
-        axs[1,2].text(0.05, 0.2, "Std = {} +/- {} mm".format(printer(gaussian.GetParameter(4), gaussian.GetParError(4))[0], printer(gaussian.GetParameter(4), gaussian.GetParError(4))[1]), fontsize = fontsize)
+        axs[1,2].text(0.05, 0.7, "Mean = {} ± {} mm".format(printer(gaussian.GetParameter(1), gaussian.GetParError(1))[0], printer(gaussian.GetParameter(1), gaussian.GetParError(1))[1]), fontsize = fontsize)
+        axs[1,2].text(0.05, 0.6, "Std = {} ± {} mm".format(printer(gaussian.GetParameter(2), gaussian.GetParError(2))[0], printer(gaussian.GetParameter(2), gaussian.GetParError(2))[1]), fontsize = fontsize)
+        axs[1,2].text(0.05, 0.3, "Mean = {} ± {} mm".format(printer(gaussian.GetParameter(3), gaussian.GetParError(3))[0], printer(gaussian.GetParameter(3), gaussian.GetParError(3))[1]), fontsize = fontsize)
+        axs[1,2].text(0.05, 0.2, "Std = {} ± {} mm".format(printer(gaussian.GetParameter(4), gaussian.GetParError(4))[0], printer(gaussian.GetParameter(4), gaussian.GetParError(4))[1]), fontsize = fontsize)
         
 
 
@@ -331,12 +425,10 @@ def Two_fit(event):
 
 def update_max(val):
     HIST[0].set_clim(vmax = val)
-    HIST_z[0].set_clim(vmax = val)
     if len(axs[0,2].get_images()) > 0: axs[0,2].get_images()[0].set_clim(vmax = val)
 
 def update_min(val):
     HIST[0].set_clim(vmin = val)
-    HIST_z[0].set_clim(vmin = val)
     if len(axs[0,2].get_images()) > 0: axs[0,2].get_images()[0].set_clim(vmin = val)
 
 if __name__ == '__main__': 
@@ -405,95 +497,108 @@ if __name__ == '__main__':
             list_point.append([[None, None],[None, None]])
 
 
-        fig, axs = plt.subplots(2, 3, figsize = (15, 9), gridspec_kw=dict(height_ratios=(2, 1)))
+        fig, axs = plt.subplots(2, 3, figsize = (16, 8), gridspec_kw=dict(height_ratios=(2, 1)))
         axs[0,0].set_title("MCP data")
         axs[0,1].set_title("MCP sample")
         axs[0,1].set_xlabel("X (mm)")
         axs[0,1].set_xlabel("Y (mm)")
+        axs[0,1].set_xlim(-10, 10)
+        axs[0,1].set_ylim(-10, 10)
         axs[0,2].set_title("MCP reconstructed")
         axs[0,2].set_xlabel("X (mm)")
-        axs[0,2].set_xlabel("Y (mm)")
-        axs[1,1].remove()
-        axs[1,2].set_xlabel("Distance from (0,0)")
-        axs[1,2].set_ylabel("Distance from real point")
-
-        fig.suptitle('MCP Selection Points')
-
-        fig.canvas.mpl_connect('button_press_event', mouse_event)
+        axs[0,0].set_xlabel("Y (mm)")
+        axs[1,0].axis("off")
+        axs[1,1].axis("off")
+        axs[1,2].remove()
 
         HIST = DisplayTH2D(root_file.Get("h_Image"), axs[0,0], title = "MCP data", xlim='auto' , ylim='auto')
-        HIST_z = DisplayTH2D(root_file.Get("h_Image"), axs[1,0], title = "MCP data", xlim='auto' , ylim='auto')
 
         ### CONSTRUCT MCP SKETCH
-        pitch = 2
-        size = 1.2
-        radius = 0.2
         background = Rectangle((-10, -10), 20, 20, fc='black', alpha = 0.6)
         axs[0,1].add_patch(background)
 
+        pitch = 2
+        size = 1.2
+        radius = 0.15
+        MCP = 7.5
+
+        liste = []
+        liste1=[]
         for x in range(0,8):
             for y in range(0,8):
+
+                allpoint=0
                 x_corr = x*pitch-4*pitch+(pitch-size)/2
                 y_corr = y*pitch-4*pitch+(pitch-size)/2
-                rec = Rectangle((x_corr, y_corr), size, size, fc='blue')
-                c1 = Circle((x_corr, y_corr), radius, fc='red', label=2*x+8*4*y)
-                list_point[2*x+8*4*y][0] = [x_corr, y_corr]
-                c2 = Circle((x_corr+size, y_corr+size), radius, fc='red', label=2*x+8*4*y+1)
-                list_point[2*x+8*4*y+1][0] = [round(x_corr+size, 5), round(y_corr+size, 5)]
-                c3 = Circle((x_corr+size, y_corr), radius, fc='red', label=2*x+8*4*y+2*8)
-                list_point[2*x+8*4*y+2*8][0] = [round(x_corr+size, 5), y_corr]
-                c4 = Circle((x_corr, y_corr+size), radius, fc='red', label=2*x+8*4*y+2*8+1)
-                list_point[2*x+8*4*y+2*8+1][0] = [x_corr, round(y_corr+size, 5)]
-                
-                axs[0,1].add_patch(rec)
-                axs[0,1].add_patch(c1)
-                axs[0,1].add_patch(c2)
-                axs[0,1].add_patch(c3)
-                axs[0,1].add_patch(c4)
+        
+                liste1.append(Rectangle( (round(x_corr, 5), round(y_corr, 5)), size, size, facecolor="red"))
+                liste.append(MoveRec(axs[0,1], liste1[-1]))
+                axs[0,1].add_patch(liste1[-1])    
 
         wedge = Wedge((0,0), 15, 0, 360, width=7.5, color="black", alpha=0.5)
         axs[0,1].add_patch(wedge)
-        axs[0,1].set_xlim(-10, 10)
-        axs[0,1].set_ylim(-10, 10)
+
+        ### CONSTRUCT peaks
+        # radius = 0.02
+        # liste2 = []
+        # liste3 = []
+        # with open("coordinate_file_back.txt", "r") as file:
+        #     for line in file:
+        #         line = line.split("\t")
+
+        #         liste2.append(Circle( (float(line[0]), float(line[1])), radius, facecolor="red"))
+        #         liste3.append(MoveRec(axs[0,0], liste2[-1]))
+        #         axs[0,0].add_patch(liste2[-1])      
+
 
         ### WRITER BUTTON
-        button_pos = plt.axes([0.4, 0.05, 0.2, 0.075])
+        button_pos = plt.axes([0.72, 0.14, 0.15, 0.05])
         button_w = Button(button_pos, 'Write coordinates file')
         button_w.on_clicked(writer)
 
         ### RECONSTRUCT BUTTON
-        button_reconstruction_pos = plt.axes([0.68, 0.05, 0.2, 0.075])
+        button_reconstruction_pos = plt.axes([0.72, 0.08, 0.15, 0.05])
         button_reconstruction = Button(button_reconstruction_pos, 'Reconstruction')
         button_reconstruction.on_clicked(reconstruction)
 
         ### VMAX SLIDER
-        axfreq_max = fig.add_axes([0.1, 0.05, 0.2, 0.01])
+        axfreq_max = fig.add_axes([0.74, 0.24, 0.15, 0.01])
         freq_slider_max = Slider(
         ax=axfreq_max,
         label='Max Value',
         valmin=1,
-        valmax=150,
+        valmax=500,
         valinit=10)   
         freq_slider_max.on_changed(update_max)
 
         ### VMIN SLIDER
-        axfreq_min = fig.add_axes([0.1, 0.1, 0.2, 0.01])
+        axfreq_min = fig.add_axes([0.74, 0.29, 0.15, 0.01])
         freq_slider_min = Slider(
         ax=axfreq_min,
         label='Min Value',
         valmin=1,
-        valmax=100,
+        valmax=500,
         valinit=1)   
         freq_slider_min.on_changed(update_min)
 
-        ### LENS
-        fig.canvas.mpl_connect('motion_notify_event', on_move)
-        axs[1,0].set_xticks([])
-        axs[1,0].set_yticks([])
-        axs[1,0].set_title("")
+        ###HIDER
+        def hider(label):
+            if label == 'hide':
+                HIST[0].set_alpha(0)
+            else:
+                HIST[0].set_alpha(1)
+            fig.canvas.draw()
+
+        radio = RadioButtons(fig.add_axes([0.875, 0.08, 0.05, 0.11]), ('show', 'hide'))
+        radio.on_clicked(hider)
+
+        ### 1D fit BUTTON
+        button_fit1d_pos = plt.axes([0.665, 0.08, 0.05, 0.11])
+        button_fit1d = Button(button_fit1d_pos, '1D fit')
+        button_fit1d.on_clicked(One_fit)
         
 
-        plt.subplots_adjust(left=0.1, bottom=0.2, right=0.9, top=0.85)
+        plt.subplots_adjust(bottom=0.03, top=0.95, left=0.05, right=0.95)
         plt.show()
 
     else:
