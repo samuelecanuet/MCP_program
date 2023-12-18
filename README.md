@@ -42,7 +42,7 @@ python MCP_gui.py -f <input_filename> [-c]
 ## Fitting Details
 - The reconstruction is performed with the following formulas : 
 ```math 
-x = -\frac{\log(\frac{HD*BD}{HG*BG})}{\log(\frac{HD*BD*HG*BG}{TOT^4})}
+x = -\frac{\log(\frac{HD \times BD}{HG \times BG})}{\log(\frac{HD \times BD \times HG \times BG}{TOT^4})}
 \quad\quad\quad\quad\quad\quad\quad\quad
  y = -\frac{\log\left(\frac{HD \times BG}{HG \times BD}\right)}{\log\left(\frac{HD \times BD \times HG \times BG}{TOT^4}\right)}
  ```
