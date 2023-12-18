@@ -40,15 +40,14 @@ python MCP_gui.py -f <input_filename> [-c]
 - Perform a fitting process and access the fitting parameters.
 
 ## Fitting Details
-- The reconstruction is performed with the follwing formulas : 
-$$
-x = -\frac{
-log(\frac{HD*BD}{HG*BG})}
+- The reconstruction is performed with the following formulas : 
+```math x = -\frac{
+\log(\frac{HD*BD}{HG*BG})}
 {
-log(\frac{HD*BD*HG*BG}{TOT^4})}
+\log(\frac{HD*BD*HG*BG}{TOT^4})}
 \quad\quad\quad\quad\quad\quad\quad\quad
- y = -\frac{\log\left(\frac{HD \times BG}{HG \times BD}\right)}{\log\left(\frac{HD \times BD \times HG \times BG}{TOT^4}\right)}
-$$
+ y = -\frac{\log\left(\frac{HD \times BG}{HG \times BD}\right)}{\log\left(\frac{HD \times BD \times HG \times BG}{TOT^4}\right)}```
+
 - Gain match is performed using two 3rd order polynomial fits: x<sub>real</sub> = g(x<sub>data</sub>, y<sub>data</sub>) and y<sub>real</sub> = f(x<sub>data</sub>, y<sub>data</sub>). You can modify the degree of the function in the "fit.C" file. 
 
 ### Data File Example
