@@ -327,7 +327,7 @@ def reconstruction(event):
     else:
         subprocess.run(["fit", input_file])
         root_file = TFile(input_file)
-        Histo = DisplayTH2D(root_file.Get("h_Image_corr"), axs[0,2], xlim='auto', ylim='auto', title = "MCP reconstructed")
+        Histo = DisplayTH2D(root_file.Get("h_Image_corr"), axs[0,1], xlim='auto', ylim='auto', title = "MCP reconstructed")
         plt.show()
         return Histo, None
 
@@ -349,42 +349,41 @@ def One_fit(event):
         liste3=[]
     # try : 
         root_file = TFile(input_file)
-        th1d = root_file.Get("h_Image") 
-        th1d.GetXaxis().SetRangeUser(axs[0,0].get_xlim()[0], axs[0,0].get_xlim()[1])
-        th1d.GetYaxis().SetRangeUser(axs[0,0].get_ylim()[0], axs[0,0].get_ylim()[1])
+        th1d = root_file.Get("h_Image_corr") 
+        th1d.GetXaxis().SetRangeUser(axs[0,1].get_xlim()[0], axs[0,1].get_xlim()[1])
+        th1d.GetYaxis().SetRangeUser(axs[0,1].get_ylim()[0], axs[0,1].get_ylim()[1])
     
         ### Display and Do Hist-Fiiting
         axs[1,1].clear()
         th_x = th1d.ProjectionX("projectionX")
         DisplayTH1D(th_x, axs[1,1], title="X projection")
-        gaussian_x = TF1("gaussian", "gaus", axs[0,0].get_xlim()[0], axs[0,0].get_xlim()[1])
+        gaussian_x = TF1("gaussian", "gaus", axs[0,1].get_xlim()[0], axs[0,1].get_xlim()[1])
         gaussian_x.SetParameters(th_x.GetMaximum(), 0, 1)
         th_x.Fit("gaussian", "R")
-        x = np.linspace(axs[0,0].get_xlim()[0], axs[0,0].get_xlim()[1], 10000)
+        x = np.linspace(axs[0,1].get_xlim()[0], axs[0,1].get_xlim()[1], 10000)
         axs[1,1].plot(x, gauss(x, gaussian_x.GetParameter(0), gaussian_x.GetParameter(1), gaussian_x.GetParameter(2)), color="red")
 
-        axs[1,0].clear()
+        axs[0,2].clear()
         th_y = th1d.ProjectionY("projectionY")
-        DisplayTH1D(th_y, axs[1,0], title = "Y projection")
-        gaussian_y = TF1("gaussian", "gaus", axs[0,0].get_ylim()[0], axs[0,0].get_ylim()[1])
+        DisplayTH1D(th_y, axs[0, 2], title = "Y projection")
+        gaussian_y = TF1("gaussian", "gaus", axs[0,1].get_ylim()[0], axs[0,1].get_ylim()[1])
         gaussian_y.SetParameters(th_y.GetMaximum(), 0, 1)
         th_y.Fit("gaussian", "R")
-        y = np.linspace(axs[0,0].get_ylim()[0], axs[0,0].get_ylim()[1], 10000)
-        axs[1,0].plot(y, gauss(y, gaussian_y.GetParameter(0), gaussian_y.GetParameter(1), gaussian_y.GetParameter(2)), color="red")
+        y = np.linspace(axs[0,1].get_ylim()[0], axs[0,1].get_ylim()[1], 10000)
+        axs[0,2].plot(y, gauss(y, gaussian_y.GetParameter(0), gaussian_y.GetParameter(1), gaussian_y.GetParameter(2)), color="red")
+        # for square in liste:
+        #     if square.selected:
+        #         square.rec.set_facecolor("green")
+        #         square.valid = True
+        #         square.selected = False
+        #         square.x = gaussian_x.GetParameter(1)
+        #         square.y = gaussian_y.GetParameter(1)
+        #         break
 
-        for square in liste:
-            if square.selected:
-                square.rec.set_facecolor("green")
-                square.valid = True
-                square.selected = False
-                square.x = gaussian_x.GetParameter(1)
-                square.y = gaussian_y.GetParameter(1)
-                break
 
-
-        liste2.append(Circle( (gaussian_x.GetParameter(1), gaussian_y.GetParameter(1)), 0.02, facecolor="green", alpha=0.5))
-        liste3.append(MoveRec(axs[0,0], liste2[-1]))
-        axs[0,0].add_patch(liste2[-1])  
+        # liste2.append(Circle( (gaussian_x.GetParameter(1), gaussian_y.GetParameter(1)), 0.02, facecolor="green", alpha=0.5))
+        # liste3.append(MoveRec(axs[0,0], liste2[-1]))
+        # axs[0,0].add_patch(liste2[-1])  
 
 
 

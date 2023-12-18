@@ -175,8 +175,10 @@ int main(int argc, char **argv)
   {
     // Open data file
     ifstream infile("fit_params.txt");
-    double xmax, xmin, ymax, ymin;
-    infile >> xmax >> xmin >> ymax >> ymin;
+    // double xmax, xmin, ymax, ymin;
+    // infile >> xmax >> xmin >> ymax >> ymin;
+
+    
 
     std::string line;
     std::vector<std::vector<double>> data;
@@ -194,23 +196,28 @@ int main(int argc, char **argv)
 
     infile.close();
 
-    double *param_X = new double[data[1].size()];
-    std::copy(data[1].begin(), data[1].end(), param_X);
+    
 
-    double *param_Y = new double[data[2].size()];
-    std::copy(data[2].begin(), data[2].end(), param_Y);
+    double *param_X = new double[data[0].size()];
+    std::copy(data[0].begin(), data[0].end(), param_X);
+
+    double *param_Y = new double[data[1].size()];
+    std::copy(data[1].begin(), data[1].end(), param_Y);
+   
 
     while (Reader.Next())
     {
-      if (*X0_tree < xmax && *X0_tree > xmin && *Y0_tree < ymax && *Y0_tree > ymin)
-      {
+      // if (*X0_tree < xmax && *X0_tree > xmin && *Y0_tree < ymax && *Y0_tree > ymin)
+      // {
         double_t data[2] = {*X0_tree, *Y0_tree};
         X2_tree = fit_points(data, param_X);
         Y2_tree = fit_points(data, param_Y);
         tree_MCP_corr->Fill();
         h_Image_corr->Fill(X2_tree, Y2_tree);
-      }
+      //}
     }
+
+    
     root_file->Write();
     root_file->Close();
     return (0);
