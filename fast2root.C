@@ -38,8 +38,8 @@ using namespace std;
 
 #define LABEL_MCP_HG   3
 #define LABEL_MCP_HD   2
-#define LABEL_MCP_BG   4
 #define LABEL_MCP_BD   1
+#define LABEL_MCP_BG   4
 #define LABEL_MCP_SIG  5
 
 #define NO_DATA 0.
@@ -138,6 +138,7 @@ int main (int argc, char** argv)
    
   //  output histograms
   TH2F *h_Image = new TH2F("h_Image","h_Image",500,-1.,1.,500,-1.,1.);
+  TH2F *h_RAW = new TH2F("h_RAW","h_RAW",500,-1.,1.,500,-1.,1.);
   TH1F *h_MCP_HG_q1 = new TH1F("h_MCP_HG_q1","h_MCP_HG_q1",1000,0.,200000);
   TH1F *h_MCP_HD_q1 = new TH1F("h_MCP_HD_q1","h_MCP_HD_q1",1000,0.,200000);
   TH1F *h_MCP_BG_q1 = new TH1F("h_MCP_BG_q1","h_MCP_BG_q1",1000,0.,200000);
@@ -240,7 +241,7 @@ int i_no_group=0;
       if (label == LABEL_MCP_HG)
 			{
 			MCP_HG_q1 = spectro_data.measure;
-			
+  
 			}
 			
 			if (label == LABEL_MCP_HD)
@@ -281,7 +282,12 @@ int i_no_group=0;
     h_MCP_BG_q1->Fill(MCP_BG_q1);
     h_MCP_BD_q1->Fill(MCP_BD_q1);
     h_Image->Fill(X0,Y0); 
+    
     treeMCP->Fill();
+
+    X0 =  (MCP_HD_q1+MCP_BD_q1-MCP_HG_q1-MCP_BG_q1)/(MCP_HD_q1+MCP_BD_q1+MCP_HG_q1+MCP_BG_q1);
+    Y0 =  (MCP_HD_q1-MCP_BD_q1+MCP_HG_q1-MCP_BG_q1)/(MCP_HD_q1+MCP_BD_q1+MCP_HG_q1+MCP_BG_q1);
+    h_RAW->Fill(X0,Y0);
   }
 	
 	

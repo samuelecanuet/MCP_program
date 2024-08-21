@@ -26,8 +26,8 @@
 
 using namespace std;
 
-const int NparX = 3;
-const int NparY = 3;
+const int NparX = 2;
+const int NparY = 2;
 const int Nparam = (NparX + 1) * (NparY + 1);
 float X2_tree, Y2_tree;
 
@@ -87,8 +87,8 @@ int main(int argc, char **argv)
     double diff_r;
     double r;
 
-    TF2 *f_X1 = new TF2("fit_points_fX1", fit_points, -1., 1., -1., 1., Nparam);
-    TF2 *f_Y1 = new TF2("fit_points_fY1", fit_points, -1., 1., -1., 1., Nparam);
+    TF2 *f_X1 = new TF2("fit_points_fX1", fit_points, -10., 10., -10., 10., Nparam);
+    TF2 *f_Y1 = new TF2("fit_points_fY1", fit_points, -10., 10., -10., 10., Nparam);
 
     for (int i = 0; i < Nparam; i++)
     {
@@ -100,6 +100,7 @@ int main(int argc, char **argv)
     TGraph2D *g_Y1 = new TGraph2D();
 
     TCanvas *c1 = new TCanvas("Residus", "Residus", 800, 800);
+    c1->cd();
     TGraph *Residus = new TGraph();
 
     for (int i = 0; i < N; i++)
@@ -109,11 +110,11 @@ int main(int argc, char **argv)
 
       tab_X0[i] = X0;
       tab_Y0[i] = Y0;
-      tab_X1[i] = X1-1.6;
-      tab_Y1[i] = Y1-1.6;
+      tab_X1[i] = X1;
+      tab_Y1[i] = Y1;
 
-      g_X1->SetPoint(i, X0, Y0, X1+1.6);
-      g_Y1->SetPoint(i, X0, Y0, Y1+1.6);
+      g_X1->SetPoint(i, X0, Y0, X1);
+      g_Y1->SetPoint(i, X0, Y0, Y1);
     }
 
     g_X1->Fit("fit_points_fX1");
@@ -130,6 +131,13 @@ int main(int argc, char **argv)
       r = sqrt(pow(tab_X1[i], 2) + pow(tab_Y1[i], 2));
       Residus->SetPoint(i, r, diff_r);
     }
+    Residus->SetMarkerStyle(20);
+    Residus->SetMarkerSize(0.5);
+    Residus->SetMarkerColor(kRed);
+    Residus->GetXaxis()->SetTitle("r");
+    Residus->GetYaxis()->SetTitle("diff_r");
+    Residus->SetTitle("Residus");
+    Residus->Draw("AP");
 
     size_t size = sizeof(tab_X0) / sizeof(tab_X0[0]);
   int i = 0;
@@ -164,7 +172,7 @@ int main(int argc, char **argv)
     for (int i = 0; i <= Nparam; i++)
       out_resultats << f_Y1->GetParameter(i) << " ";
 
-    test->Draw("AP");
+    //test->Draw("AP");
     c1->Write();
     root_file->Write();
     root_file->Close();
