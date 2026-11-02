@@ -365,76 +365,76 @@ def One_fit(event):
     
         ### Display and Do Hist-Fiiting
         ##GAUSSIAN
-        # axs[1,1].clear()
-        # th_x = th1d.ProjectionX("projectionX")
-        # DisplayTH1D(th_x, axs[1,1], title="X projection")
-        # gaussian_x = TF1("gaussian", "gaus", axs[0, axx].get_xlim()[0], axs[0, axx].get_xlim()[1])
-        # gaussian_x.SetParameters(th_x.GetMaximum(), 0, 1)
-        # th_x.Fit("gaussian", "R", "", axs[0, axx].get_xlim()[0], axs[0, axx].get_xlim()[1])
-        # x = np.linspace(axs[0, axx].get_xlim()[0], axs[0, axx].get_xlim()[1], 10000)
-        # axs[1,1].plot(x, gauss(x, gaussian_x.GetParameter(0), gaussian_x.GetParameter(1), gaussian_x.GetParameter(2)), color="red")
-
-        # axs[0,2].clear()
-        # th_y = th1d.ProjectionY("projectionY")
-        # DisplayTH1D(th_y, axs[0, 2], title = "Y projection")
-        # gaussian_y = TF1("gaussian", "gaus", axs[0, axx].get_ylim()[0], axs[0, axx].get_ylim()[1])
-        # gaussian_y.SetParameters(th_y.GetMaximum(), 0, 1)
-        # th_y.Fit("gaussian", "R", "", axs[0, axx].get_ylim()[0], axs[0, axx].get_ylim()[1])
-        # y = np.linspace(axs[0, axx].get_ylim()[0], axs[0, axx].get_ylim()[1], 10000)
-        # axs[0,2].plot(y, gauss(y, gaussian_y.GetParameter(0), gaussian_y.GetParameter(1), gaussian_y.GetParameter(2)), color="red")
-
-        # for square in liste:
-        #     if square.selected:
-        #         square.rec.set_facecolor("green")
-        #         square.valid = True
-        #         square.selected = False
-        #         square.x = gaussian_x.GetParameter(1)
-        #         square.y = gaussian_y.GetParameter(1)
-        #         break
-
-
-        # liste2.append(Circle( (gaussian_x.GetParameter(1), gaussian_y.GetParameter(1)), 0.02, facecolor="green", alpha=0.5))
-        # liste3.append(MoveRec(axs[0,0], liste2[-1]))
-        # axs[0,0].add_patch(liste2[-1]) 
-
-        ##2D GRID
         axs[1,1].clear()
-        DisplayTH2D(th1d, axs[1,1], title = "MCP data", xlim=axs[0, axx].get_xlim() , ylim=axs[0, axx].get_ylim())
-        grid2D = TF2("grid", grid, axs[0, axx].get_xlim()[0], axs[0, axx].get_xlim()[1], axs[0, axx].get_ylim()[0], axs[0, axx].get_ylim()[1], 6)
-        # grid2D.SetParLimits(0, 0, 500)
-        # grid2D.SetParLimits(1, axs[0, axx].get_xlim()[0], axs[0, axx].get_xlim()[1])
-        # grid2D.SetParLimits(2, axs[0, axx].get_ylim()[0], axs[0, axx].get_ylim()[1])
-        # grid2D.SetParLimits(3, 0, 1)
-        # grid2D.SetParLimits(4, 0, 1)
-        # grid2D.SetParLimits(5, 0.8, 1.4)
-        grid2D.SetParameters(th1d.GetMaximum(), axs[0, axx].get_xlim()[0]-axs[0, axx].get_xlim()[1], axs[0, axx].get_ylim()[0]-axs[0, axx].get_ylim()[1], 0.15, 0.15, 1.2)
-        th1d.Fit(grid2D, "R", "", axs[0, axx].get_ylim()[0], axs[0, axx].get_ylim()[1])
+        th_x = th1d.ProjectionX("projectionX")
+        DisplayTH1D(th_x, axs[1,1], title="X projection")
+        gaussian_x = TF1("gaussian", "gaus", axs[0, axx].get_xlim()[0], axs[0, axx].get_xlim()[1])
+        gaussian_x.SetParameters(th_x.GetMaximum(), 0, 1)
+        th_x.Fit("gaussian", "R", "", axs[0, axx].get_xlim()[0], axs[0, axx].get_xlim()[1])
+        x = np.linspace(axs[0, axx].get_xlim()[0], axs[0, axx].get_xlim()[1], 10000)
+        axs[1,1].plot(x, gauss(x, gaussian_x.GetParameter(0), gaussian_x.GetParameter(1), gaussian_x.GetParameter(2)), color="red")
 
-        # display grid2D on ax[0, 2]
-        x = np.linspace(axs[0, axx].get_xlim()[0], axs[0, axx].get_xlim()[1], 100)
-        y = np.linspace(axs[0, axx].get_ylim()[0], axs[0, axx].get_ylim()[1], 100)
-
-        # X, Y = np.meshgrid(x, y)
-        # vEval = np.vectorize(grid2D.Eval)
-
-        # # Apply vEval to X and Y
-        # Z = vEval(X, Y)
-
-        # axs[0,2].contour(X, Y, Z, 10, colors='red')
-
+        axs[0,2].clear()
+        th_y = th1d.ProjectionY("projectionY")
+        DisplayTH1D(th_y, axs[0, 2], title = "Y projection")
+        gaussian_y = TF1("gaussian", "gaus", axs[0, axx].get_ylim()[0], axs[0, axx].get_ylim()[1])
+        gaussian_y.SetParameters(th_y.GetMaximum(), 0, 1)
+        th_y.Fit("gaussian", "R", "", axs[0, axx].get_ylim()[0], axs[0, axx].get_ylim()[1])
+        y = np.linspace(axs[0, axx].get_ylim()[0], axs[0, axx].get_ylim()[1], 10000)
+        axs[0,2].plot(y, gauss(y, gaussian_y.GetParameter(0), gaussian_y.GetParameter(1), gaussian_y.GetParameter(2)), color="red")
 
         for square in liste:
-            if square.valid:
-                square.rec.set_facecolor("orange")
-                square.valid = False
+            if square.selected:
+                square.rec.set_facecolor("green")
+                square.valid = True
                 square.selected = False
-                square.x = grid2D.GetParameter(1)
-                square.y = grid2D.GetParameter(2)
+                square.x = gaussian_x.GetParameter(1)
+                square.y = gaussian_y.GetParameter(1)
                 break
-            
-        liste2.append(Circle( (grid2D.GetParameter(1), grid2D.GetParameter(2)), 0.02, facecolor="orange", alpha=0.5))
+
+
+        liste2.append(Circle( (gaussian_x.GetParameter(1), gaussian_y.GetParameter(1)), 0.02, facecolor="green", alpha=0.5))
         liste3.append(MoveRec(axs[0,0], liste2[-1]))
-        axs[0,0].add_patch(liste2[-1])
+        axs[0,0].add_patch(liste2[-1]) 
+
+        ##2D GRID
+        # axs[1,1].clear()
+        # DisplayTH2D(th1d, axs[1,1], title = "MCP data", xlim=axs[0, axx].get_xlim() , ylim=axs[0, axx].get_ylim())
+        # grid2D = TF2("grid", grid, axs[0, axx].get_xlim()[0], axs[0, axx].get_xlim()[1], axs[0, axx].get_ylim()[0], axs[0, axx].get_ylim()[1], 6)
+        # # grid2D.SetParLimits(0, 0, 500)
+        # # grid2D.SetParLimits(1, axs[0, axx].get_xlim()[0], axs[0, axx].get_xlim()[1])
+        # # grid2D.SetParLimits(2, axs[0, axx].get_ylim()[0], axs[0, axx].get_ylim()[1])
+        # # grid2D.SetParLimits(3, 0, 1)
+        # # grid2D.SetParLimits(4, 0, 1)
+        # # grid2D.SetParLimits(5, 0.8, 1.4)
+        # grid2D.SetParameters(th1d.GetMaximum(), axs[0, axx].get_xlim()[0]-axs[0, axx].get_xlim()[1], axs[0, axx].get_ylim()[0]-axs[0, axx].get_ylim()[1], 0.15, 0.15, 1.2)
+        # th1d.Fit(grid2D, "R", "", axs[0, axx].get_ylim()[0], axs[0, axx].get_ylim()[1])
+
+        # # display grid2D on ax[0, 2]
+        # x = np.linspace(axs[0, axx].get_xlim()[0], axs[0, axx].get_xlim()[1], 100)
+        # y = np.linspace(axs[0, axx].get_ylim()[0], axs[0, axx].get_ylim()[1], 100)
+
+        # # X, Y = np.meshgrid(x, y)
+        # # vEval = np.vectorize(grid2D.Eval)
+
+        # # # Apply vEval to X and Y
+        # # Z = vEval(X, Y)
+
+        # # axs[0,2].contour(X, Y, Z, 10, colors='red')
+
+
+        # for square in liste:
+        #     if square.valid:
+        #         square.rec.set_facecolor("orange")
+        #         square.valid = False
+        #         square.selected = False
+        #         square.x = grid2D.GetParameter(1)
+        #         square.y = grid2D.GetParameter(2)
+        #         break
+            
+        # liste2.append(Circle( (grid2D.GetParameter(1), grid2D.GetParameter(2)), 0.02, facecolor="orange", alpha=0.5))
+        # liste3.append(MoveRec(axs[0,0], liste2[-1]))
+        # axs[0,0].add_patch(liste2[-1])
 
     # except AttributeError:
     #      print(f" {bcolors.WARNING} Please, reconstruct the image before fitting. {bcolors.ENDC}")

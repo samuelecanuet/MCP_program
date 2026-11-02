@@ -24,6 +24,7 @@
 #include "TStyle.h"
 #include "TRandom.h"
 #include "TGraph.h"
+#include "TLegend.h"
 
 //  fasterac includes
 #include "fasterac/fasterac.h"
@@ -60,6 +61,11 @@ const double MCP_q1_min=0;
 double func(double x, double n)
 {
   return log(x/n);
+}
+
+double func1(double x)
+{
+  return x;
 }
 
 int main (int argc, char** argv) 
@@ -117,7 +123,7 @@ int main (int argc, char** argv)
   TFile*         root_file;
 
   FileName = argv[1];
-  fRootName = RootFolder += FileName + ".root";
+  fRootName = RootFolder += FileName + "_test.root";
   fDataName = DataFolder += FileName + ".fast";
 
   //////////////////////////////////////////////////////////////////////
@@ -137,13 +143,15 @@ int main (int argc, char** argv)
   treeMCP->Branch ("Y0", &Y0, "Y0/D");  
    
   //  output histograms
-  TH2F *h_Image = new TH2F("h_Image","h_Image",500,-1.,1.,500,-1.,1.);
+  double range = 1;
+  TH2F *h_Image = new TH2F("h_Image","h_Image",1000,-range,range,1000,-range,range);
   TH2F *h_RAW = new TH2F("h_RAW","h_RAW",500,-1.,1.,500,-1.,1.);
-  TH1F *h_MCP_HG_q1 = new TH1F("h_MCP_HG_q1","h_MCP_HG_q1",1000,0.,200000);
-  TH1F *h_MCP_HD_q1 = new TH1F("h_MCP_HD_q1","h_MCP_HD_q1",1000,0.,200000);
-  TH1F *h_MCP_BG_q1 = new TH1F("h_MCP_BG_q1","h_MCP_BG_q1",1000,0.,200000);
-  TH1F *h_MCP_BD_q1 = new TH1F("h_MCP_BD_q1","h_MCP_BD_q1",1000,0.,200000);
-  TH1F *h_MCP_SIG_q1 = new TH1F("h_MCP_SIG_q1","h_MCP_SIG_q1",1000,0.,100000);
+  TH1F *h_MCP_HG_q1 = new TH1F("h_MCP_HG_q1","h_MCP_HG_q1",1000,0.,1);
+  TH1F *h_MCP_HD_q1 = new TH1F("h_MCP_HD_q1","h_MCP_HD_q1",1000,0.,1);
+  TH1F *h_MCP_BG_q1 = new TH1F("h_MCP_BG_q1","h_MCP_BG_q1",1000,0.,1);
+  TH1F *h_MCP_BD_q1 = new TH1F("h_MCP_BD_q1","h_MCP_BD_q1",1000,0.,1);
+  TH1F *h_MCP_SIG_q1 = new TH1F("h_MCP_SIG_q1","h_MCP_SIG_q1",1000,0.,50000);
+
   
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
@@ -275,19 +283,33 @@ int i_no_group=0;
   X0 = -log(MCP_HD_q1*MCP_BD_q1/(MCP_BG_q1*MCP_HG_q1))/ (func(MCP_HD_q1*MCP_BD_q1*MCP_HG_q1*MCP_BG_q1, pow(norm,4)));
   Y0 = -log(MCP_HD_q1*MCP_HG_q1/(MCP_BG_q1*MCP_BD_q1))/ (func(MCP_HD_q1*MCP_BD_q1*MCP_HG_q1*MCP_BG_q1, pow(norm,4)));
 
-	if (MCP_SIG_q1 > MCP_q1_min && MCP_HD_q1 != NO_DATA && MCP_HG_q1 != NO_DATA && MCP_BD_q1 != NO_DATA && MCP_BG_q1 != NO_DATA) 
-  {
-    h_MCP_HG_q1->Fill(MCP_HG_q1);
-    h_MCP_HD_q1->Fill(MCP_HD_q1);
-    h_MCP_BG_q1->Fill(MCP_BG_q1);
-    h_MCP_BD_q1->Fill(MCP_BD_q1);
-    h_Image->Fill(X0,Y0); 
+
+  // X0 =  (MCP_HD_q1+MCP_BD_q1-MCP_HG_q1-MCP_BG_q1)/(MCP_HD_q1+MCP_BD_q1+MCP_HG_q1+MCP_BG_q1);
+  // Y0 =  (MCP_HD_q1-MCP_BD_q1+MCP_HG_q1-MCP_BG_q1)/(MCP_HD_q1+MCP_BD_q1+MCP_HG_q1+MCP_BG_q1);
+
+  
+	if (MCP_SIG_q1 > MCP_q1_min && MCP_HD_q1 != NO_DATA && MCP_HG_q1 != NO_DATA && MCP_BD_q1 != NO_DATA && MCP_BG_q1 != NO_DATA && X0 != 0 && Y0 != 0) 
+  {      
+    
+    // cout << "X0: " << func2(X0) << " Y0: " << func2(Y0) << endl;
+    h_Image->Fill(X0, Y0); 
     
     treeMCP->Fill();
 
     X0 =  (MCP_HD_q1+MCP_BD_q1-MCP_HG_q1-MCP_BG_q1)/(MCP_HD_q1+MCP_BD_q1+MCP_HG_q1+MCP_BG_q1);
     Y0 =  (MCP_HD_q1-MCP_BD_q1+MCP_HG_q1-MCP_BG_q1)/(MCP_HD_q1+MCP_BD_q1+MCP_HG_q1+MCP_BG_q1);
-    h_RAW->Fill(X0,Y0);
+
+    if (X0 != 0 && Y0 != 0)
+    {
+      h_RAW->Fill(X0,Y0);
+    }
+
+
+    h_MCP_HG_q1->Fill(func1(MCP_HG_q1/(norm)));
+    h_MCP_HD_q1->Fill(func1(MCP_HD_q1/(norm)));
+    h_MCP_BG_q1->Fill(func1(MCP_BG_q1/(norm)));
+    h_MCP_BD_q1->Fill(func1(MCP_BD_q1/(norm)));
+
   }
 	
 	
@@ -307,6 +329,24 @@ int i_no_group=0;
   //  close the faster file and quit
   faster_file_reader_close (reader);
   root_file->Write ();
+
+  TCanvas *c = new TCanvas("c", "c", 800, 800);
+  TLegend *leg = new TLegend(0.1,0.7,0.48,0.9);
+  h_MCP_HG_q1->Draw("HIST");
+  leg->AddEntry(h_MCP_HG_q1, "MCP_HG_q1", "l");
+  h_MCP_HD_q1->SetLineColor(kRed);
+  h_MCP_HD_q1->Draw("HIST SAME");
+  leg->AddEntry(h_MCP_HD_q1, "MCP_HD_q1", "l");
+  h_MCP_BG_q1->SetLineColor(kGreen);
+  h_MCP_BG_q1->Draw("HIST SAME");
+  leg->AddEntry(h_MCP_BG_q1, "MCP_BG_q1", "l");
+  h_MCP_BD_q1->SetLineColor(kBlue);
+  h_MCP_BD_q1->Draw("HIST SAME");
+  leg->AddEntry(h_MCP_BD_q1, "MCP_BD_q1", "l");
+  leg->Draw("SAME");
+  c->Write();
+
+
   root_file->Close ();
 
   

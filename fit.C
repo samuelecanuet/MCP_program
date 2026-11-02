@@ -26,8 +26,8 @@
 
 using namespace std;
 
-const int NparX = 2;
-const int NparY = 2;
+const int NparX = 4;
+const int NparY = 4;
 const int Nparam = (NparX + 1) * (NparY + 1);
 float X2_tree, Y2_tree;
 
